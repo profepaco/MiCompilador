@@ -1,0 +1,362 @@
+/**
+ * JavaCC template file created by SF JavaCC plugin 1.5.28+ wizard for JavaCC 1.5.0+
+ */
+options
+{
+  static = true;
+}
+
+PARSER_BEGIN(Compilador)
+package edu.itsco;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import edu.itsco.semantica.*;
+public class Compilador
+{
+
+  private static AdministraVariable adminVariable;
+  
+  public static void main(String args [])
+  {
+    try { 
+    	//Compilador compilador = new Compilador(System.in);
+		Compilador compilador = new Compilador(
+		  new FileInputStream("programa.txt"));
+		adminVariable = new AdministraVariable();
+		System.out.println("Iniciando la compilacion...");
+    	compilador.principal();
+    	System.out.println("Compilo correctamente xD");
+  	}catch(ParseException pex) {
+  	  	//Aqui hagan algo con su exception
+		System.err.println(pex.getMessage());
+	}catch(SemanticException se) {
+	  	System.err.println(se.getMessage());
+  	}catch(FileNotFoundException fex) {
+		System.err.println(fex.getMessage());
+    }
+  }
+}
+
+PARSER_END(Compilador)
+
+SKIP :
+{
+  " "
+| "\r"
+| "\t"
+| "\n"
+}
+
+/* Palabras reservadas */
+TOKEN:{
+  < PROGRAM: "program" >
+| < INTEGER: "integer" >
+| < DECIMAL: "decimal" >
+| < STRING: "string" >
+
+| < PRINT: "print" >
+| < READ: "read" >
+
+| < IF: "if" >
+| < ELSE: "else" >
+
+| < SELECT: "select" >
+| < CASE: "case" >
+| < BREAK: "break" >
+
+| < FOR : "for" >
+| < WHILE: "while" >
+| < DO: "do" >
+
+}
+
+TOKEN: {
+  < SUMA: "+" >
+| < RESTA: "-" >
+| < MULTI: "*" >
+| < DIV: "/" >
+| < MOD: "%" >
+| < IGUAL: "=" >
+
+| < MAYOR: ">" >
+| < MENOR: "<" >
+
+| < AND: "&&" >
+| < OR: "||" >
+| < NOT: "!" >
+
+| < AP: "(" >
+| < CP: ")" >
+
+| < AL: "{" >
+| < CL: "}" >
+
+| < PC: ";" >
+| < DP: ":" >
+| < COMA: "," >
+
+}
+
+TOKEN: {
+  < #digito: ["0"-"9"] >
+| < #letra: ["a"-"z","A"-"Z"] >
+
+| < ID: (< letra >|"_") (< letra >|"_" |< digito >)* >
+| < INT_VAL: (< digito >)+ >
+| < DEC_VAL: (< digito >)+ "." (< digito >)+ >
+| < STR_VAL: "\"" (~["\""])* "\"" >
+}
+
+void principal() throws SemanticException: {
+} {
+	< PROGRAM > < ID > <AL >
+	   sentencias()
+	< CL >
+}
+
+void sentencias() throws SemanticException: {
+} {
+	(	  declararVariable()
+	| gramaticaLeer()
+	| gramaticaImprimir()
+	| gramaticaAsignacion()
+	| gramaticaIf()
+	| gramaticaSwitch()
+	| gramaticaFor()
+	| gramaticaWhile()
+	| gramaticaDo()
+	)+
+}
+
+void declararVariable() throws SemanticException: {
+  Token id;
+  Token tipoDato;
+  boolean inicializada = false;
+} {
+	tipoDato = tipoDato() id = < ID >
+	[ <IGUAL > operacion(tipoDato.image)
+		{ inicializada = true; } ]
+	 < PC >
+	{
+	  Variable v = new Variable(
+	  	tipoDato.image, id.image, inicializada);
+	  //System.out.println(v);
+	  adminVariable.addVariable(v);
+	}
+}
+
+Token tipoDato(): {
+  Token tipoDato;
+} {
+  (    tipoDato = < INTEGER >
+    | tipoDato = < DECIMAL >
+    | tipoDato = < STRING >
+  )
+  {  return tipoDato; }
+}
+
+void gramaticaLeer() throws SemanticException: {
+  Token id;
+} {
+	< READ > <AP > id = <ID > <CP > <PC >
+	{
+	  Variable v = new Variable();
+	  v.setNombre(id.image);
+	  adminVariable.existeVariable(v);
+	  v = adminVariable.obtenerVariable(v);
+	  v.setInicializada(true);
+	}
+}
+
+void gramaticaImprimir() throws SemanticException: {
+} {
+	< PRINT > <AP >
+		valor(null) ( < COMA > valor(null) )*
+	< CP > < PC >
+}
+
+String valor(String tipo) throws SemanticException: {
+  Token id;
+  Token valor;
+  String tipo2;
+} {
+  (
+	id = < ID >
+	{
+    	Variable v = new Variable();
+    	v.setNombre(id.image);
+    	adminVariable.existeVariable(v);
+    	v = adminVariable.obtenerVariable(v);
+    	adminVariable.variableInicializada(v);
+    	tipo2 = v.getTipoDato();
+    	valor = id;
+  	}
+	| valor = < INT_VAL > { tipo2 = "integer"; }
+	| valor = < DEC_VAL > { tipo2 = "decimal"; }
+	| valor = < STR_VAL > {
+			tipo2 = CompiladorConstants.tokenImage[
+			CompiladorConstants.STRING];
+	   }
+  )
+  {
+    if(tipo!=null) {
+		ValidaTipos.tiposNoCoinciden(
+		  tipo, tipo2, valor.beginLine,
+		   valor.beginColumn);
+    }
+    return tipo2;
+  }
+}
+
+void gramaticaAsignacion() throws SemanticException: {
+  Token id;
+  String tipo;
+} {
+    id = < ID >
+	{
+    	Variable v = new Variable();
+    	v.setNombre(id.image);
+    	adminVariable.existeVariable(v);
+    	v = adminVariable.obtenerVariable(v);
+    	v.setInicializada(true);
+    	tipo = v.getTipoDato();
+  	}< IGUAL > operacion(tipo) < PC >
+}
+
+void operacion(String tipo)
+throws SemanticException: {
+} {
+	( valor(tipo) | opParentesis(tipo) )
+	( opAritmetico(tipo)
+	( valor(tipo) | opParentesis(tipo) ) )*
+}
+
+void opParentesis(String tipo) throws SemanticException: {
+} {
+  < AP > operacion(tipo) < CP >
+}
+
+void opAritmetico(String tipo)
+throws SemanticException: {
+	Token operador;
+}
+{
+	(	  operador = < SUMA >
+	| operador = < RESTA >
+	| operador = < MULTI >
+	| operador = < DIV >
+	| operador = < MOD >
+	)
+	{
+	  	System.out.println(tipo);
+		ValidaTipos.validaOperador(
+		  tipo,
+		  operador.image,
+		  operador.beginLine,
+		  operador.beginColumn);
+	}
+}
+void gramaticaIf() throws SemanticException: {
+} {
+	< IF > < AP > condicion() < CP > <AL >
+	    sentencias()
+	< CL >
+	[ < ELSE > <AL > sentencias() < CL > ]
+}
+
+void condicion() throws SemanticException: {
+} {
+	condicionSimple() ( opLogico() condicionSimple())*
+}
+
+void condicionSimple()throws SemanticException: {
+  String tipo;
+} {
+	tipo = valor(null) opRelacional(tipo) valor(tipo)
+}
+
+void opLogico(): {
+} {
+	< AND > | < OR > 
+}
+
+void opRelacional(String tipo)
+throws SemanticException: {
+  Token operador1 = null;
+  String operador = null;
+} {
+  (
+  operador1 =< MAYOR > { operador = ">";}
+  [< IGUAL > { operador+="=";}]
+| operador1 = < MENOR > { operador = "<";}
+  [< IGUAL > { operador +="="; }]
+| operador1 = < IGUAL ><IGUAL > { operador = "=="; }
+| operador1 = < NOT > <IGUAL > { operador = "!="; }
+  )
+  {
+    if(operador!=null) {
+		ValidaTipos.validaOperador(tipo, operador,
+		operador1.beginLine, operador1.beginColumn); 
+    }
+  }
+}
+
+void gramaticaSwitch() throws SemanticException: {
+  Token id;
+} {
+  < SELECT > < AP > id = < ID > <CP > <AL >
+  {
+	Variable v = new Variable();
+	v.setNombre(id.image);
+	adminVariable.existeVariable(v);
+	v = adminVariable.obtenerVariable(v);
+	adminVariable.variableInicializada(v);
+  }
+  ( < CASE > <INT_VAL > < DP >
+  		sentencias() < BREAK > <PC > )+
+  [ <ELSE > < DP > sentencias() ]
+  < CL >
+}
+
+void gramaticaFor() throws SemanticException: {
+  Token id1;
+  Token id2;
+} {
+	< FOR > < AP > id1 = < ID > < IGUAL >
+	{
+	  Variable v1 = new Variable();
+	  v1.setNombre(id1.image);
+	  adminVariable.existeVariable(v1);
+	  v1 = adminVariable.obtenerVariable(v1);
+	}
+	 valor(v1.getTipoDato())
+	 < PC >
+			condicion() < PC >
+			id2 = < ID > < IGUAL >
+			{
+				Variable v2 = new Variable();
+				v2.setNombre(id2.image);
+				adminVariable.existeVariable(v2);
+				v2 = adminVariable.obtenerVariable(v2);
+	        }
+			operacion(v2.getTipoDato())
+	        < CP > <AL >
+	        
+	        sentencias()
+	< CL > 
+}
+
+void gramaticaWhile() throws SemanticException: {
+} {
+	< WHILE > <AP > condicion() < CP > <AL >
+		sentencias()
+	< CL >
+}
+
+void gramaticaDo() throws SemanticException: {
+} {
+	< DO > <AL >
+		sentencias()
+	< CL >< WHILE > <AP > condicion() < CP > <PC >
+}
+
