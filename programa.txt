@@ -1,19 +1,12 @@
 program hi{
-	string nombre = "Esmeralda";
-	string apellido = "No sufras";
-	string nombreCompleto = nombre + apellido;
-	if(nombre>apellido){
-		print("nombre es mayor");
-	}
+	string nombre;
+	integer edad;
+	decimal estatura;
+	print("Como te llamas: ");
+	read(nombre);
+	print("Cual es tu edad: ");
+	read(edad);
+	print("Cual es tu estatura: ");
+	read(estatura);
+	print("Mucho gusto ",nombre);
 }
-
-#include "stdio.h"
-int main(){
-	char[] nombre = char[50];
-	char[] apellido = char[50];
-	char[] nombreCompleto = nombre + apellido;
-	if(nombre>apellido){
-		printf( "nombre es mayor\n");
-	}
-	return 0;
-} 

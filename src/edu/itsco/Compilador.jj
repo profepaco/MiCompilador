@@ -11,10 +11,12 @@ package edu.itsco;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import edu.itsco.semantica.*;
+import edu.itsco.generador.*;
 public class Compilador
 {
 
   private static AdministraVariable adminVariable;
+  private static GeneradorCodigo generador;
   
   public static void main(String args [])
   {
@@ -23,9 +25,12 @@ public class Compilador
 		Compilador compilador = new Compilador(
 		  new FileInputStream("programa.txt"));
 		adminVariable = new AdministraVariable();
+		generador = new GeneradorCodigo();
+		generador.creaCabecera();
 		System.out.println("Iniciando la compilacion...");
     	compilador.principal();
     	System.out.println("Compilo correctamente xD");
+    	generador.cerrarPrograma();
   	}catch(ParseException pex) {
   	  	//Aqui hagan algo con su exception
 		System.err.println(pex.getMessage());
@@ -131,10 +136,17 @@ void sentencias() throws SemanticException: {
 void declararVariable() throws SemanticException: {
   Token id;
   Token tipoDato;
+  Token aux;
   boolean inicializada = false;
 } {
 	tipoDato = tipoDato() id = < ID >
-	[ <IGUAL > operacion(tipoDato.image)
+	{
+	  generador.declaraVariable(
+	    	 tipoDato.image, id.image);
+	}
+	[ aux = <IGUAL >
+		{ generador.escribeToken(aux.image); }
+		operacion(tipoDato.image)
 		{ inicializada = true; } ]
 	 < PC >
 	{
@@ -142,6 +154,8 @@ void declararVariable() throws SemanticException: {
 	  	tipoDato.image, id.image, inicializada);
 	  //System.out.println(v);
 	  adminVariable.addVariable(v);
+	  //agregando el salto
+	  generador.saltoDeLinea();
 	}
 }
 
@@ -165,14 +179,26 @@ void gramaticaLeer() throws SemanticException: {
 	  adminVariable.existeVariable(v);
 	  v = adminVariable.obtenerVariable(v);
 	  v.setInicializada(true);
+	  //imprimimos el readline
+	  generador.generaLeer(v.getTipoDato(),
+	  	 v.getNombre());
 	}
 }
 
 void gramaticaImprimir() throws SemanticException: {
+  Token aux;
 } {
 	< PRINT > <AP >
-		valor(null) ( < COMA > valor(null) )*
-	< CP > < PC >
+	{
+	  generador.escribeInstruccion("Console.WriteLine(");}
+		valor(null) (
+		  < COMA >
+		  { generador.concatena();}
+		valor(null) )*
+	aux = < CP > {
+	  generador.escribeToken(aux.image);
+	  generador.saltoDeLinea();
+	}< PC >
 }
 
 String valor(String tipo) throws SemanticException: {
@@ -204,6 +230,8 @@ String valor(String tipo) throws SemanticException: {
 		  tipo, tipo2, valor.beginLine,
 		   valor.beginColumn);
     }
+    //imprimir el valor
+    generador.escribeToken(valor.image);
     return tipo2;
   }
 }
@@ -211,6 +239,7 @@ String valor(String tipo) throws SemanticException: {
 void gramaticaAsignacion() throws SemanticException: {
   Token id;
   String tipo;
+  Token aux;
 } {
     id = < ID >
 	{
@@ -220,7 +249,11 @@ void gramaticaAsignacion() throws SemanticException: {
     	v = adminVariable.obtenerVariable(v);
     	v.setInicializada(true);
     	tipo = v.getTipoDato();
-  	}< IGUAL > operacion(tipo) < PC >
+    	//imprimir el id
+    	generador.escribeToken(id.image);
+  	} aux = < IGUAL >
+  	{ generador.escribeToken(aux.image); }
+  	operacion(tipo) < PC >
 }
 
 void operacion(String tipo)
@@ -231,9 +264,15 @@ throws SemanticException: {
 	( valor(tipo) | opParentesis(tipo) ) )*
 }
 
-void opParentesis(String tipo) throws SemanticException: {
+void opParentesis(String tipo)
+throws SemanticException: {
+ Token aux;
 } {
-  < AP > operacion(tipo) < CP >
+  aux = < AP >
+  { generador.escribeToken(aux.image); }
+  operacion(tipo)
+  aux = < CP >
+  { generador.escribeToken(aux.image); }
 }
 
 void opAritmetico(String tipo)
@@ -248,12 +287,13 @@ throws SemanticException: {
 	| operador = < MOD >
 	)
 	{
-	  	System.out.println(tipo);
 		ValidaTipos.validaOperador(
 		  tipo,
 		  operador.image,
 		  operador.beginLine,
 		  operador.beginColumn);
+		  //imprimimos el operador
+		  generador.escribeToken(operador.image);
 	}
 }
 void gramaticaIf() throws SemanticException: {

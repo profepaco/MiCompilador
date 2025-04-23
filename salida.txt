@@ -1,0 +1,15 @@
+Imports System
+Module Program
+Sub Main(args as String)
+dim nombre as string
+dim edad as integer
+dim estatura as decimal
+Console.WriteLine("Como te llamas: ")
+nombre = Console.ReadLine()
+Console.WriteLine("Cual es tu edad: ")
+edad = Integer.parse(Console.ReadLine())
+Console.WriteLine("Cual es tu estatura: ")
+estatura = Decimal.parse(Console.ReadLine())
+Console.WriteLine("Mucho gusto " & nombre)
+End Sub
+End Module

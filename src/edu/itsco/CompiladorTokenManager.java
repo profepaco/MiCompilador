@@ -4,6 +4,7 @@ package edu.itsco;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import edu.itsco.semantica.*;
+import edu.itsco.generador.*;
 
 /** Token Manager. */
 @SuppressWarnings ("unused")

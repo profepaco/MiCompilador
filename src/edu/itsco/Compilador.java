@@ -4,9 +4,11 @@ package edu.itsco;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import edu.itsco.semantica.*;
+import edu.itsco.generador.*;
 public class Compilador implements CompiladorConstants {
 
   private static AdministraVariable adminVariable;
+  private static GeneradorCodigo generador;
 
   public static void main(String args [])
   {
@@ -15,9 +17,12 @@ public class Compilador implements CompiladorConstants {
                 Compilador compilador = new Compilador(
                   new FileInputStream("programa.txt"));
                 adminVariable = new AdministraVariable();
+                generador = new GeneradorCodigo();
+                generador.creaCabecera();
                 System.out.println("Iniciando la compilacion...");
         compilador.principal();
         System.out.println("Compilo correctamente xD");
+        generador.cerrarPrograma();
         }catch(ParseException pex) {
                 //Aqui hagan algo con su exception
                 System.err.println(pex.getMessage());
@@ -107,12 +112,16 @@ public class Compilador implements CompiladorConstants {
 
   static final public void declararVariable() throws ParseException, SemanticException {Token id;
   Token tipoDato;
+  Token aux;
   boolean inicializada = false;
     tipoDato = tipoDato();
     id = jj_consume_token(ID);
+generador.declaraVariable(
+                 tipoDato.image, id.image);
     switch ((jj_ntk==-1)?jj_ntk_f():jj_ntk) {
     case IGUAL:{
-      jj_consume_token(IGUAL);
+      aux = jj_consume_token(IGUAL);
+generador.escribeToken(aux.image);
       operacion(tipoDato.image);
 inicializada = true;
       break;
@@ -126,6 +135,8 @@ Variable v = new Variable(
                 tipoDato.image, id.image, inicializada);
           //System.out.println(v);
           adminVariable.addVariable(v);
+          //agregando el salto
+          generador.saltoDeLinea();
 }
 
   static final public Token tipoDato() throws ParseException {Token tipoDato;
@@ -162,11 +173,15 @@ Variable v = new Variable();
           adminVariable.existeVariable(v);
           v = adminVariable.obtenerVariable(v);
           v.setInicializada(true);
+          //imprimimos el readline
+          generador.generaLeer(v.getTipoDato(),
+                 v.getNombre());
 }
 
-  static final public void gramaticaImprimir() throws ParseException, SemanticException {
+  static final public void gramaticaImprimir() throws ParseException, SemanticException {Token aux;
     jj_consume_token(PRINT);
     jj_consume_token(AP);
+generador.escribeInstruccion("Console.WriteLine(");
     valor(null);
     label_2:
     while (true) {
@@ -180,9 +195,12 @@ Variable v = new Variable();
         break label_2;
       }
       jj_consume_token(COMA);
+generador.concatena();
       valor(null);
     }
-    jj_consume_token(CP);
+    aux = jj_consume_token(CP);
+generador.escribeToken(aux.image);
+          generador.saltoDeLinea();
     jj_consume_token(PC);
 }
 
@@ -227,12 +245,15 @@ if(tipo!=null) {
                   tipo, tipo2, valor.beginLine,
                    valor.beginColumn);
     }
+    //imprimir el valor
+    generador.escribeToken(valor.image);
     {if ("" != null) return tipo2;}
     throw new Error("Missing return statement in function");
 }
 
   static final public void gramaticaAsignacion() throws ParseException, SemanticException {Token id;
   String tipo;
+  Token aux;
     id = jj_consume_token(ID);
 Variable v = new Variable();
         v.setNombre(id.image);
@@ -240,7 +261,10 @@ Variable v = new Variable();
         v = adminVariable.obtenerVariable(v);
         v.setInicializada(true);
         tipo = v.getTipoDato();
-    jj_consume_token(IGUAL);
+        //imprimir el id
+        generador.escribeToken(id.image);
+    aux = jj_consume_token(IGUAL);
+generador.escribeToken(aux.image);
     operacion(tipo);
     jj_consume_token(PC);
 }
@@ -299,10 +323,12 @@ Variable v = new Variable();
     }
 }
 
-  static final public void opParentesis(String tipo) throws ParseException, SemanticException {
-    jj_consume_token(AP);
+  static final public void opParentesis(String tipo) throws ParseException, SemanticException {Token aux;
+    aux = jj_consume_token(AP);
+generador.escribeToken(aux.image);
     operacion(tipo);
-    jj_consume_token(CP);
+    aux = jj_consume_token(CP);
+generador.escribeToken(aux.image);
 }
 
   static final public void opAritmetico(String tipo) throws ParseException, SemanticException {Token operador;
@@ -332,12 +358,13 @@ Variable v = new Variable();
       jj_consume_token(-1);
       throw new ParseException();
     }
-System.out.println(tipo);
-                ValidaTipos.validaOperador(
+ValidaTipos.validaOperador(
                   tipo,
                   operador.image,
                   operador.beginLine,
                   operador.beginColumn);
+                  //imprimimos el operador
+                  generador.escribeToken(operador.image);
 }
 
   static final public void gramaticaIf() throws ParseException, SemanticException {
