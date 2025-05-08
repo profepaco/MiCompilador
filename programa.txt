@@ -1,12 +1,9 @@
 program hi{
 	string nombre;
-	integer edad;
+	integer numero=0;
 	decimal estatura;
-	print("Como te llamas: ");
-	read(nombre);
-	print("Cual es tu edad: ");
-	read(edad);
-	print("Cual es tu estatura: ");
-	read(estatura);
-	print("Mucho gusto ",nombre);
+	for(numero=10;numero>=1;numero=numero-1){
+		print(numero);
+	}
 }
+

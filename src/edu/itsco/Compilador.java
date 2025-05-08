@@ -122,7 +122,7 @@ generador.declaraVariable(
     case IGUAL:{
       aux = jj_consume_token(IGUAL);
 generador.escribeToken(aux.image);
-      operacion(tipoDato.image);
+      operacion(tipoDato.image, false);
 inicializada = true;
       break;
       }
@@ -182,7 +182,7 @@ Variable v = new Variable();
     jj_consume_token(PRINT);
     jj_consume_token(AP);
 generador.escribeInstruccion("Console.WriteLine(");
-    valor(null);
+    valor(null, true);
     label_2:
     while (true) {
       switch ((jj_ntk==-1)?jj_ntk_f():jj_ntk) {
@@ -196,7 +196,7 @@ generador.escribeInstruccion("Console.WriteLine(");
       }
       jj_consume_token(COMA);
 generador.concatena();
-      valor(null);
+      valor(null, true);
     }
     aux = jj_consume_token(CP);
 generador.escribeToken(aux.image);
@@ -204,7 +204,7 @@ generador.escribeToken(aux.image);
     jj_consume_token(PC);
 }
 
-  static final public String valor(String tipo) throws ParseException, SemanticException {Token id;
+  static final public String valor(String tipo, boolean imprime) throws ParseException, SemanticException {Token id;
   Token valor;
   String tipo2;
     switch ((jj_ntk==-1)?jj_ntk_f():jj_ntk) {
@@ -246,7 +246,8 @@ if(tipo!=null) {
                    valor.beginColumn);
     }
     //imprimir el valor
-    generador.escribeToken(valor.image);
+    if(imprime)
+        generador.escribeToken(valor.image); //56, "hola", numero
     {if ("" != null) return tipo2;}
     throw new Error("Missing return statement in function");
 }
@@ -265,17 +266,18 @@ Variable v = new Variable();
         generador.escribeToken(id.image);
     aux = jj_consume_token(IGUAL);
 generador.escribeToken(aux.image);
-    operacion(tipo);
+    operacion(tipo, false);
     jj_consume_token(PC);
 }
 
-  static final public void operacion(String tipo) throws ParseException, SemanticException {
+  static final public void operacion(String tipo, boolean esFor) throws ParseException, SemanticException {boolean imprime = true;
+if(esFor) imprime = false;
     switch ((jj_ntk==-1)?jj_ntk_f():jj_ntk) {
     case ID:
     case INT_VAL:
     case DEC_VAL:
     case STR_VAL:{
-      valor(tipo);
+      valor(tipo, imprime);
       break;
       }
     case AP:{
@@ -302,13 +304,13 @@ generador.escribeToken(aux.image);
         jj_la1[7] = jj_gen;
         break label_3;
       }
-      opAritmetico(tipo);
+      opAritmetico(tipo, esFor);
       switch ((jj_ntk==-1)?jj_ntk_f():jj_ntk) {
       case ID:
       case INT_VAL:
       case DEC_VAL:
       case STR_VAL:{
-        valor(tipo);
+        valor(tipo, imprime);
         break;
         }
       case AP:{
@@ -326,12 +328,12 @@ generador.escribeToken(aux.image);
   static final public void opParentesis(String tipo) throws ParseException, SemanticException {Token aux;
     aux = jj_consume_token(AP);
 generador.escribeToken(aux.image);
-    operacion(tipo);
+    operacion(tipo, false);
     aux = jj_consume_token(CP);
 generador.escribeToken(aux.image);
 }
 
-  static final public void opAritmetico(String tipo) throws ParseException, SemanticException {Token operador;
+  static final public void opAritmetico(String tipo, boolean esFor) throws ParseException, SemanticException {Token operador;
     switch ((jj_ntk==-1)?jj_ntk_f():jj_ntk) {
     case SUMA:{
       operador = jj_consume_token(SUMA);
@@ -364,20 +366,26 @@ ValidaTipos.validaOperador(
                   operador.beginLine,
                   operador.beginColumn);
                   //imprimimos el operador
-                  generador.escribeToken(operador.image);
+                  if(!esFor)
+                        generador.escribeToken(operador.image);
 }
 
   static final public void gramaticaIf() throws ParseException, SemanticException {
     jj_consume_token(IF);
     jj_consume_token(AP);
-    condicion();
+generador.escribeInstruccion("If ");
+    condicion(false);
     jj_consume_token(CP);
     jj_consume_token(AL);
+generador.escribeInstruccion(" Then");
+          generador.saltoDeLinea();
     sentencias();
     jj_consume_token(CL);
     switch ((jj_ntk==-1)?jj_ntk_f():jj_ntk) {
     case ELSE:{
       jj_consume_token(ELSE);
+generador.escribeInstruccion("Else");
+                  generador.saltoDeLinea();
       jj_consume_token(AL);
       sentencias();
       jj_consume_token(CL);
@@ -387,10 +395,12 @@ ValidaTipos.validaOperador(
       jj_la1[10] = jj_gen;
       ;
     }
+generador.escribeInstruccion("End If");
+          generador.saltoDeLinea();
 }
 
-  static final public void condicion() throws ParseException, SemanticException {
-    condicionSimple();
+  static final public void condicion(boolean esFor) throws ParseException, SemanticException {
+    condicionSimple(esFor);
     label_4:
     while (true) {
       switch ((jj_ntk==-1)?jj_ntk_f():jj_ntk) {
@@ -404,24 +414,28 @@ ValidaTipos.validaOperador(
         break label_4;
       }
       opLogico();
-      condicionSimple();
+      condicionSimple(esFor);
     }
 }
 
-  static final public void condicionSimple() throws ParseException, SemanticException {String tipo;
-    tipo = valor(null);
-    opRelacional(tipo);
-    valor(tipo);
+  static final public void condicionSimple(boolean esFor) throws ParseException, SemanticException {String tipo;
+  boolean imprime = true;
+if(esFor) imprime=false;
+    tipo = valor(null,imprime);
+    opRelacional(tipo, esFor);
+    valor(tipo, true);
 }
 
   static final public void opLogico() throws ParseException {
     switch ((jj_ntk==-1)?jj_ntk_f():jj_ntk) {
     case AND:{
       jj_consume_token(AND);
+generador.escribeToken(" and ");
       break;
       }
     case OR:{
       jj_consume_token(OR);
+generador.escribeToken(" or ");
       break;
       }
     default:
@@ -431,7 +445,7 @@ ValidaTipos.validaOperador(
     }
 }
 
-  static final public void opRelacional(String tipo) throws ParseException, SemanticException {Token operador1 = null;
+  static final public void opRelacional(String tipo, boolean esFor) throws ParseException, SemanticException {Token operador1 = null;
   String operador = null;
     switch ((jj_ntk==-1)?jj_ntk_f():jj_ntk) {
     case MAYOR:{
@@ -484,10 +498,15 @@ operador = "!=";
 if(operador!=null) {
                 ValidaTipos.validaOperador(tipo, operador,
                 operador1.beginLine, operador1.beginColumn);
+                if(operador.equals(" != "))
+                        operador = " <> ";
+                if(!esFor)
+                        generador.escribeToken(operador);
     }
 }
 
   static final public void gramaticaSwitch() throws ParseException, SemanticException {Token id;
+  Token valor;
     jj_consume_token(SELECT);
     jj_consume_token(AP);
     id = jj_consume_token(ID);
@@ -498,11 +517,18 @@ Variable v = new Variable();
         adminVariable.existeVariable(v);
         v = adminVariable.obtenerVariable(v);
         adminVariable.variableInicializada(v);
+        //imprimos el select
+        generador.escribeInstruccion("Select ");
+        generador.escribeToken(id.image);
+        generador.saltoDeLinea();
     label_5:
     while (true) {
       jj_consume_token(CASE);
-      jj_consume_token(INT_VAL);
+      valor = jj_consume_token(INT_VAL);
       jj_consume_token(DP);
+generador.escribeInstruccion("Case ");
+          generador.escribeToken(valor.image);
+          generador.saltoDeLinea();
       sentencias();
       jj_consume_token(BREAK);
       jj_consume_token(PC);
@@ -520,6 +546,8 @@ Variable v = new Variable();
     case ELSE:{
       jj_consume_token(ELSE);
       jj_consume_token(DP);
+generador.escribeInstruccion("Case Else");
+          generador.saltoDeLinea();
       sentencias();
       break;
       }
@@ -528,6 +556,7 @@ Variable v = new Variable();
       ;
     }
     jj_consume_token(CL);
+generador.escribeInstruccion("End Select");
 }
 
   static final public void gramaticaFor() throws ParseException, SemanticException {Token id1;
@@ -540,9 +569,13 @@ Variable v1 = new Variable();
           v1.setNombre(id1.image);
           adminVariable.existeVariable(v1);
           v1 = adminVariable.obtenerVariable(v1);
-    valor(v1.getTipoDato());
+          generador.escribeInstruccion("For ");
+          generador.escribeToken(id1.image);
+          generador.escribeToken(" = ");
+    valor(v1.getTipoDato(), true);
+generador.escribeInstruccion(" To ");
     jj_consume_token(PC);
-    condicion();
+    condicion(true);
     jj_consume_token(PC);
     id2 = jj_consume_token(ID);
     jj_consume_token(IGUAL);
@@ -550,33 +583,44 @@ Variable v2 = new Variable();
                                 v2.setNombre(id2.image);
                                 adminVariable.existeVariable(v2);
                                 v2 = adminVariable.obtenerVariable(v2);
-    operacion(v2.getTipoDato());
+    operacion(v2.getTipoDato(), true);
     jj_consume_token(CP);
     jj_consume_token(AL);
+generador.saltoDeLinea();
     sentencias();
     jj_consume_token(CL);
+generador.escribeInstruccion("Next ");
+                generador.escribeToken(id1.image);
+                generador.saltoDeLinea();
 }
 
   static final public void gramaticaWhile() throws ParseException, SemanticException {
     jj_consume_token(WHILE);
     jj_consume_token(AP);
-    condicion();
+generador.escribeInstruccion("While ");
+    condicion(false);
     jj_consume_token(CP);
     jj_consume_token(AL);
+generador.saltoDeLinea();
     sentencias();
     jj_consume_token(CL);
+generador.escribeInstruccion("End While");
 }
 
   static final public void gramaticaDo() throws ParseException, SemanticException {
     jj_consume_token(DO);
     jj_consume_token(AL);
+generador.escribeInstruccion("Do");
+          generador.saltoDeLinea();
     sentencias();
     jj_consume_token(CL);
     jj_consume_token(WHILE);
+generador.escribeInstruccion("Loop While ");
     jj_consume_token(AP);
-    condicion();
+    condicion(false);
     jj_consume_token(CP);
     jj_consume_token(PC);
+generador.saltoDeLinea();
 }
 
   static private boolean jj_initialized_once = false;

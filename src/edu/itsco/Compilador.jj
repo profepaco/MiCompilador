@@ -146,7 +146,7 @@ void declararVariable() throws SemanticException: {
 	}
 	[ aux = <IGUAL >
 		{ generador.escribeToken(aux.image); }
-		operacion(tipoDato.image)
+		operacion(tipoDato.image, false)
 		{ inicializada = true; } ]
 	 < PC >
 	{
@@ -191,17 +191,17 @@ void gramaticaImprimir() throws SemanticException: {
 	< PRINT > <AP >
 	{
 	  generador.escribeInstruccion("Console.WriteLine(");}
-		valor(null) (
+		valor(null, true) (
 		  < COMA >
 		  { generador.concatena();}
-		valor(null) )*
+		valor(null, true) )*
 	aux = < CP > {
 	  generador.escribeToken(aux.image);
 	  generador.saltoDeLinea();
 	}< PC >
 }
 
-String valor(String tipo) throws SemanticException: {
+String valor(String tipo, boolean imprime) throws SemanticException: {
   Token id;
   Token valor;
   String tipo2;
@@ -231,7 +231,8 @@ String valor(String tipo) throws SemanticException: {
 		   valor.beginColumn);
     }
     //imprimir el valor
-    generador.escribeToken(valor.image);
+    if(imprime)
+    	generador.escribeToken(valor.image); //56, "hola", numero
     return tipo2;
   }
 }
@@ -253,15 +254,19 @@ void gramaticaAsignacion() throws SemanticException: {
     	generador.escribeToken(id.image);
   	} aux = < IGUAL >
   	{ generador.escribeToken(aux.image); }
-  	operacion(tipo) < PC >
+  	operacion(tipo, false) < PC >
 }
 
-void operacion(String tipo)
+void operacion(String tipo, boolean esFor)
 throws SemanticException: {
+  boolean imprime = true;
 } {
-	( valor(tipo) | opParentesis(tipo) )
-	( opAritmetico(tipo)
-	( valor(tipo) | opParentesis(tipo) ) )*
+  {
+    if(esFor) imprime = false;
+  }
+	( valor(tipo, imprime) | opParentesis(tipo) )
+	( opAritmetico(tipo, esFor)
+	( valor(tipo, imprime) | opParentesis(tipo) ) )*
 }
 
 void opParentesis(String tipo)
@@ -270,12 +275,12 @@ throws SemanticException: {
 } {
   aux = < AP >
   { generador.escribeToken(aux.image); }
-  operacion(tipo)
+  operacion(tipo, false)
   aux = < CP >
   { generador.escribeToken(aux.image); }
 }
 
-void opAritmetico(String tipo)
+void opAritmetico(String tipo, boolean esFor)
 throws SemanticException: {
 	Token operador;
 }
@@ -293,34 +298,58 @@ throws SemanticException: {
 		  operador.beginLine,
 		  operador.beginColumn);
 		  //imprimimos el operador
-		  generador.escribeToken(operador.image);
+		  if(!esFor)
+		  	generador.escribeToken(operador.image);
 	}
 }
 void gramaticaIf() throws SemanticException: {
 } {
-	< IF > < AP > condicion() < CP > <AL >
+	< IF > < AP >
+	{
+	  generador.escribeInstruccion("If ");
+	}
+	condicion(false) < CP > <AL >
+	{
+	  generador.escribeInstruccion(" Then");
+	  generador.saltoDeLinea();
+	}
 	    sentencias()
 	< CL >
-	[ < ELSE > <AL > sentencias() < CL > ]
+	[ < ELSE >
+		{
+		  generador.escribeInstruccion("Else");
+		  generador.saltoDeLinea();
+		}
+	 <AL > sentencias() < CL > ]
+	{
+	  generador.escribeInstruccion("End If");
+	  generador.saltoDeLinea();
+	}
 }
 
-void condicion() throws SemanticException: {
+void condicion(boolean esFor) throws SemanticException: {
 } {
-	condicionSimple() ( opLogico() condicionSimple())*
+	condicionSimple(esFor) ( opLogico() condicionSimple(esFor))*
 }
 
-void condicionSimple()throws SemanticException: {
+void condicionSimple(boolean esFor)throws SemanticException: {
   String tipo;
+  boolean imprime = true;
 } {
-	tipo = valor(null) opRelacional(tipo) valor(tipo)
+  	{
+  	  if(esFor) imprime=false;
+  	}
+	tipo = valor(null,imprime)
+	opRelacional(tipo, esFor) valor(tipo, true)
 }
 
 void opLogico(): {
 } {
-	< AND > | < OR > 
+	< AND > { generador.escribeToken(" and "); }
+	| < OR > { generador.escribeToken(" or "); } 
 }
 
-void opRelacional(String tipo)
+void opRelacional(String tipo, boolean esFor)
 throws SemanticException: {
   Token operador1 = null;
   String operador = null;
@@ -336,13 +365,18 @@ throws SemanticException: {
   {
     if(operador!=null) {
 		ValidaTipos.validaOperador(tipo, operador,
-		operador1.beginLine, operador1.beginColumn); 
+		operador1.beginLine, operador1.beginColumn);
+		if(operador.equals(" != "))
+			operador = " <> ";
+		if(!esFor)
+			generador.escribeToken(operador); 
     }
   }
 }
 
 void gramaticaSwitch() throws SemanticException: {
   Token id;
+  Token valor;
 } {
   < SELECT > < AP > id = < ID > <CP > <AL >
   {
@@ -351,27 +385,53 @@ void gramaticaSwitch() throws SemanticException: {
 	adminVariable.existeVariable(v);
 	v = adminVariable.obtenerVariable(v);
 	adminVariable.variableInicializada(v);
+	//imprimos el select
+	generador.escribeInstruccion("Select ");
+	generador.escribeToken(id.image);
+	generador.saltoDeLinea();
   }
-  ( < CASE > <INT_VAL > < DP >
-  		sentencias() < BREAK > <PC > )+
-  [ <ELSE > < DP > sentencias() ]
+  ( < CASE > valor = <INT_VAL > < DP >	
+	{
+	  generador.escribeInstruccion("Case ");
+	  generador.escribeToken(valor.image);
+	  generador.saltoDeLinea();
+	  
+	}
+	sentencias() < BREAK > <PC >
+  )+
+  [ <ELSE > < DP >
+	{
+	  generador.escribeInstruccion("Case Else");
+	  generador.saltoDeLinea();
+	}
+  sentencias() ]
   < CL >
+  {
+    generador.escribeInstruccion("End Select");
+  }
 }
 
 void gramaticaFor() throws SemanticException: {
   Token id1;
   Token id2;
 } {
-	< FOR > < AP > id1 = < ID > < IGUAL >
+	< FOR >
+	< AP > id1 = < ID > < IGUAL >
 	{
 	  Variable v1 = new Variable();
 	  v1.setNombre(id1.image);
 	  adminVariable.existeVariable(v1);
 	  v1 = adminVariable.obtenerVariable(v1);
+	  generador.escribeInstruccion("For ");
+	  generador.escribeToken(id1.image);
+	  generador.escribeToken(" = ");
 	}
-	 valor(v1.getTipoDato())
+	 valor(v1.getTipoDato(), true)
+	 {
+	   generador.escribeInstruccion(" To ");
+	 }
 	 < PC >
-			condicion() < PC >
+			condicion(true) < PC >
 			id2 = < ID > < IGUAL >
 			{
 				Variable v2 = new Variable();
@@ -379,24 +439,50 @@ void gramaticaFor() throws SemanticException: {
 				adminVariable.existeVariable(v2);
 				v2 = adminVariable.obtenerVariable(v2);
 	        }
-			operacion(v2.getTipoDato())
+			operacion(v2.getTipoDato(), true)
 	        < CP > <AL >
-	        
+	        { generador.saltoDeLinea(); }
 	        sentencias()
-	< CL > 
+	< CL >
+	{
+		generador.escribeInstruccion("Next ");
+		generador.escribeToken(id1.image);
+		generador.saltoDeLinea();
+	}
 }
 
 void gramaticaWhile() throws SemanticException: {
 } {
-	< WHILE > <AP > condicion() < CP > <AL >
+	< WHILE > <AP >
+	{
+	  generador.escribeInstruccion("While ");
+	}
+	condicion(false) < CP > <AL >
+	{
+	  generador.saltoDeLinea();
+	}
 		sentencias()
 	< CL >
+	{
+	  generador.escribeInstruccion("End While");
+	}
 }
 
 void gramaticaDo() throws SemanticException: {
 } {
 	< DO > <AL >
+	{
+	  generador.escribeInstruccion("Do");
+	  generador.saltoDeLinea();
+	}
 		sentencias()
-	< CL >< WHILE > <AP > condicion() < CP > <PC >
+	< CL >< WHILE >
+	{
+		generador.escribeInstruccion("Loop While ");	
+	}
+	 <AP > condicion(false) < CP > <PC >
+	 {
+	   generador.saltoDeLinea();
+	 }
 }
 

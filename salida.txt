@@ -2,14 +2,10 @@ Imports System
 Module Program
 Sub Main(args as String)
 dim nombre as string
-dim edad as integer
+dim numero as integer=0
 dim estatura as decimal
-Console.WriteLine("Como te llamas: ")
-nombre = Console.ReadLine()
-Console.WriteLine("Cual es tu edad: ")
-edad = Integer.parse(Console.ReadLine())
-Console.WriteLine("Cual es tu estatura: ")
-estatura = Decimal.parse(Console.ReadLine())
-Console.WriteLine("Mucho gusto " & nombre)
+For numero = 10 To 1 Step -1
+Console.WriteLine(numero)
+Next numero
 End Sub
 End Module
