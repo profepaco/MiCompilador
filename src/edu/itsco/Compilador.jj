@@ -22,8 +22,14 @@ public class Compilador
   {
     try { 
     	//Compilador compilador = new Compilador(System.in);
+    	if(args.length == 0) {
+			System.out.println("No hay archivo de entrada");
+			System.exit(0);
+    	}
+		/*Compilador compilador = new Compilador(
+		  new FileInputStream("programa.txt"));*/
 		Compilador compilador = new Compilador(
-		  new FileInputStream("programa.txt"));
+		  new FileInputStream(args[0]));
 		adminVariable = new AdministraVariable();
 		generador = new GeneradorCodigo();
 		generador.creaCabecera();

@@ -1,11 +1,6 @@
 Imports System
 Module Program
 Sub Main(args as String)
-dim nombre as string
-dim numero as integer=0
-dim estatura as decimal
-For numero = 10 To 1 Step -1
-Console.WriteLine(numero)
-Next numero
+Console.WriteLine("Hola mundo en mi Lenguaje")
 End Sub
 End Module

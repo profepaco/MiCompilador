@@ -9,7 +9,15 @@ public class GeneradorCodigo {
 	
 	public GeneradorCodigo() {
 		try {
-			writer = new PrintWriter("salida.txt");
+			writer = new PrintWriter("salida.vb");
+		}catch(FileNotFoundException fex) {
+			System.err.println(fex.getMessage());
+		}
+	}
+	
+	public GeneradorCodigo(String path) {
+		try {
+			writer = new PrintWriter("salida.vb");
 		}catch(FileNotFoundException fex) {
 			System.err.println(fex.getMessage());
 		}
